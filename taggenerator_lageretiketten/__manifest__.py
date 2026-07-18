@@ -9,6 +9,7 @@
     'depends': [
         'base',
         'web',
+        'stock',
     ],
     'data': [
         'data/config.xml',
