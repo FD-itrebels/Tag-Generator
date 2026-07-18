@@ -12,8 +12,8 @@
     ],
     'data': [
         'data/config.xml',
-        'views/menu.xml',
-        'views/label_batch_views.xml',
+        'views/label_batch_views.xml',  # Muss VOR menu.xml kommen (definiert die Actions)
+        'views/menu.xml',                # Referenziert die Actions
     ],
     'external_dependencies': {
         'python': ['reportlab'],
