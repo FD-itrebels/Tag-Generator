@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <menuitem id="menu_label_batch" name="Lageretiketten" web_icon="taggenerator_lageretiketten,static/description/icon.png"/>
+        <menuitem id="menu_label_batch_list" parent="menu_label_batch" name="Etikettenblöcke" action="action_label_batch_list"/>
+    </data>
+</odoo>
