@@ -6,7 +6,6 @@ import io
 from datetime import datetime
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
-from ..lib import PDFLabelGenerator
 
 
 class LabelBatch(models.Model):
@@ -47,6 +46,8 @@ class LabelBatch(models.Model):
     
     def action_generate_pdf(self):
         """Generiert PDF aus hochgeladener CSV"""
+        from ..lib import PDFLabelGenerator
+        
         for batch in self:
             try:
                 if not batch.csv_file:
