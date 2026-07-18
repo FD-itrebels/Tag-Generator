@@ -24,8 +24,8 @@
             <field name="arch" type="xml">
                 <form>
                     <header>
-                        <button name="action_generate_pdf" type="object" string="🎨 PDF generieren" class="btn-primary" states="draft"/>
-                        <button name="action_download_pdf" type="object" string="⬇️ PDF herunterladen" states="generated"/>
+                        <button name="action_generate_pdf" type="object" string="🎨 PDF generieren" class="btn-primary"/>
+                        <button name="action_download_pdf" type="object" string="⬇️ PDF herunterladen"/>
                         <field name="state" widget="statusbar"/>
                     </header>
                     <sheet>
@@ -36,7 +36,7 @@
                         </div>
                         <group>
                             <group>
-                                <field name="csv_file" widget="binary" filename="csv_filename" states="draft"/>
+                                <field name="csv_file" widget="binary" filename="csv_filename"/>
                                 <field name="csv_filename" invisible="1"/>
                                 <field name="created_by" readonly="1"/>
                                 <field name="create_date" readonly="1"/>
@@ -48,11 +48,11 @@
                                 <field name="save_pdf"/>
                             </group>
                         </group>
-                        <group string="Output" states="generated">
+                        <group string="Output">
                             <field name="pdf_file" widget="binary" filename="pdf_filename" readonly="1"/>
                             <field name="pdf_filename" readonly="1"/>
                         </group>
-                        <group string="Fehlerinfo" states="error" attrs="{'invisible': [('error_message', '=', False)]}">
+                        <group string="Fehlerinfo">
                             <field name="error_message" readonly="1" widget="text"/>
                         </group>
                     </sheet>
