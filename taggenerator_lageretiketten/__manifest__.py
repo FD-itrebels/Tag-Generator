@@ -10,11 +10,15 @@
         'base',
         'web',
         'stock',
+        'mail',
     ],
     'data': [
+        'security/ir.model.access.csv',
         'data/config.xml',
-        'views/label_batch_views.xml',  # Muss VOR menu.xml kommen (definiert die Actions)
-        'views/menu.xml',                # Referenziert die Actions
+        'data/warehouse_import.xml',       # Test warehouse locations from odoo_export_test.csv
+        'views/label_batch_views.xml',    # Muss VOR menu.xml kommen (definiert die Actions)
+        'views/stock_location_views.xml', # Stock location tree/list/search views & actions
+        'views/menu.xml',                  # Referenziert die Actions
     ],
     'external_dependencies': {
         'python': ['reportlab'],

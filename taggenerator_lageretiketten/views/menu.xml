@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+        <!-- Main menu for label batch generation -->
         <menuitem id="menu_label_batch" name="Lageretiketten" parent="stock.menu_stock_root" action="action_label_batch_list" sequence="50"/>
+        
+        <!-- Submenu for viewing warehouse locations -->
+        <menuitem id="menu_warehouse_locations" name="Warehouse Locations" parent="stock.menu_stock_root" action="action_stock_location_view" sequence="51"/>
     </data>
 </odoo>
