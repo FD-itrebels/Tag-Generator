@@ -15,12 +15,12 @@ from reportlab.lib import colors
 class PDFLabelGenerator:
     """Generiert farbcodierte Vektor-PDFs mit QR-Codes (410×70mm, 4 Slots)"""
     
-    def __init__(self, label_width=410, label_height=70, qr_size=90):
+    def __init__(self, label_width=410, label_height=70, qr_size=50):
         """
         Args:
             label_width: mm (default 410 für A4 quer minus Ränder)
             label_height: mm (default 70 für 4 Labels pro A4)
-            qr_size: mm (default 90mm = 2x größer)
+            qr_size: mm (default 50mm)
         """
         self.label_width = label_width * mm
         self.label_height = label_height * mm
@@ -28,7 +28,8 @@ class PDFLabelGenerator:
         self.slot_width = self.label_width / 4  # 4 Slots nebeneinander
         
         # Padding/Margins
-        self.padding = 2 * mm  # Innere Abstände
+        self.padding_x = 2.5 * mm  # Innere Abstände
+        self.padding_y = 2 * mm
         self.print_margin = 5 * mm  # 0.5cm Druckmarkierung Abstand von Rand
         
         # Farbcodierung: Slot → Farbe

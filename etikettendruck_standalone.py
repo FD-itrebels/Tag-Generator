@@ -21,14 +21,15 @@ from reportlab.lib import colors
 class PDFLabelGenerator:
     """Generiert farbcodierte Vektor-PDFs mit QR-Codes (410×70mm, 4 Slots)"""
     
-    def __init__(self, label_width=410, label_height=70, qr_size=90):
+    def __init__(self, label_width=410, label_height=70, qr_size=50):
         self.label_width = label_width * mm
         self.label_height = label_height * mm
         self.qr_size = qr_size * mm
         self.slot_width = self.label_width / 4
         
         # Padding/Margins
-        self.padding = 2 * mm  # Innere Abstände
+        self.padding_x = 2.5 * mm  # Innere Abstände
+        self.padding_y = 2 * mm
         self.print_margin = 5 * mm  # 0.5cm Druckmarkierung Abstand von Rand
         
         self.color_map = {
@@ -101,7 +102,7 @@ class PDFLabelGenerator:
         return labels
     
     def generate_pdf(self, labels, output_buffer=None):
-        """Generiert PDF aus Label-Liste"""
+        """Generiert PDF aus Label-Liste mit Magenta Druckmarkierung"""
         if output_buffer is None:
             output_buffer = io.BytesIO()
         
@@ -128,50 +129,72 @@ class PDFLabelGenerator:
                 c.setLineWidth(0.5)
                 c.rect(x_offset, 0, self.slot_width, self.label_height, fill=0, stroke=1)
                 
-                # ===== RACK-KENNUNG (oben links, gedreht) =====
+                # ===== RACK-KENNUNG (links, vertikal gedreht) =====
                 c.setFillColor(colors.black)
-                c.setFont("Helvetica-Bold", 42)  # 42pt (vorher 16pt)
+                c.setFont("Helvetica-Bold", 32)
                 c.saveState()
-                c.translate(x_offset + 5*mm, self.label_height - 8*mm)
+                c.translate(x_offset + 15*mm, 20*mm)
                 c.rotate(90)
-                c.drawCentredString(0, 0, rack)
+                c.drawString(0, 0, rack)
                 c.restoreState()
                 
-                # ===== QR-CODE (oben-links positioned, mit weißem Hintergrund) =====
+                # ===== QR-CODE (oben-mitte mit weißem Hintergrund) =====
                 if barcode:
-                    # Weiße Box hinter QR-Code
-                    qr_box_padding = 1.5 * mm
+                    # Weiße Box
+                    qr_box_size = 40 * mm
                     c.setFillColor(colors.white)
                     c.setStrokeColor(colors.lightgrey)
                     c.setLineWidth(0.5)
-                    qr_x_pos = x_offset + self.padding + qr_box_padding
-                    qr_y_pos = self.label_height - self.qr_size - self.padding - qr_box_padding
+                    qr_box_x = x_offset + (self.slot_width - qr_box_size) / 2
+                    qr_box_y = self.label_height - qr_box_size - 10*mm
                     c.rect(
-                        qr_x_pos - qr_box_padding, 
-                        qr_y_pos - qr_box_padding, 
-                        self.qr_size + 2*qr_box_padding, 
-                        self.qr_size + 2*qr_box_padding, 
+                        qr_box_x,
+                        qr_box_y,
+                        qr_box_size,
+                        qr_box_size,
                         fill=1, stroke=1
                     )
                     
-                    # QR-Code selbst (oben-links corner positioned)
-                    qr_code = qr.QrCodeWidget(barcode)
-                    qr_drawing = Drawing(self.qr_size, self.qr_size)
+                    # QR-Code - zentriert mit translate()
+                    qr_code = qr.QrCodeWidget(barcode, barBorder=1)
+                    qr_size = 32 * mm
+                    qr_drawing = Drawing(qr_size, qr_size)
                     qr_drawing.add(qr_code)
-                    qr_drawing.drawOn(c, qr_x_pos, qr_y_pos)
+                    
+                    # Zentrieren der QR in der Box
+                    qr_center_x = qr_box_x + qr_box_size / 2
+                    qr_center_y = qr_box_y + qr_box_size / 2
+                    
+                    c.saveState()
+                    c.translate(qr_center_x, qr_center_y)
+                    qr_drawing.drawOn(c, -qr_size / 2, -qr_size / 2)
+                    c.restoreState()
                 
-                # ===== BARCODE-NUMMER (unten, große Schrift 24pt) =====
-                c.setFont("Courier-Bold", 24)  # 24pt Mono, größer (vorher 8pt)
+                # ===== BARCODE-NUMMER (unten center, 20pt Courier) =====
                 c.setFillColor(colors.black)
-                c.drawCentredString(x_offset + self.slot_width/2, 4*mm, str(barcode))
+                c.setFont("Courier-Bold", 26)
+                c.drawCentredString(x_offset + self.slot_width/2, 7*mm, str(barcode))
                 
-                # ===== SLOT-NUMMER (rechts oben, sehr groß 42pt) =====
-                c.setFont("Helvetica-Bold", 42)  # 42pt (vorher 32pt)
-                c.drawRightString(x_offset + self.slot_width - 3*mm, self.label_height - 10*mm, str(slot_display_num))
+                # ===== SLOT-NUMMER/LEVEL (oben rechts, 42pt) =====
+                c.setFillColor(colors.black)
+                c.setFont("Helvetica-Bold", 42)
+                c.drawRightString(x_offset + self.slot_width - 5*mm, self.label_height - 20*mm, str(slot_display_num))
                 
-                # ===== LEVEL-NUMMER (rechts unten, 32pt) =====
-                c.setFont("Helvetica-Bold", 32)  # 32pt (vorher 14pt)
-                c.drawRightString(x_offset + self.slot_width - 3*mm, 7*mm, f"L{level}")
+                # ===== POSITION-ZIFFER (unten rechts) =====
+                c.setFillColor(colors.black)
+                c.setFont("Helvetica-Bold", 24)
+                c.drawRightString(x_offset + self.slot_width - 5*mm, 20*mm, position)
+            
+            # ===== DRUCK-MARKIERUNG (Magenta Border 5mm von Rand) - NACH allen Slots =====
+            c.setStrokeColor(colors.HexColor('#ff00ff'))  # Magenta
+            c.setLineWidth(1.5)  # Dickere Linie für bessere Sichtbarkeit
+            margin = 5 * mm  # 5mm von Rand
+            c.rect(
+                margin, margin,
+                self.label_width - 2*margin,
+                self.label_height - 2*margin,
+                fill=0, stroke=1
+            )
             
             c.showPage()
         
