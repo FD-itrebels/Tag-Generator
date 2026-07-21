@@ -109,12 +109,12 @@ class PDFLabelGenerator:
             # Prüfe: Haben wir alle 4 Levels?
             levels_present = {slot['level'] for slot in slots}
             if levels_present == {1, 2, 3, 4}:
-                # Sortiere nach Level (1, 2, 3, 4)
-                slots_sorted = sorted(slots, key=lambda x: x['level'])
+                # Sortiere nach Level absteigend (4→3→2→1 von links nach rechts)
+                slots_sorted = sorted(slots, key=lambda x: x['level'], reverse=True)
                 labels.append({
                     'rack': rack,
                     'position': position,
-                    'slots': slots_sorted  # [Level1, Level2, Level3, Level4]
+                    'slots': slots_sorted  # [Level4, Level3, Level2, Level1]
                 })
         
         return labels
@@ -140,14 +140,14 @@ class PDFLabelGenerator:
             position = label['position']
             slots = label['slots']  # [Level1, Level2, Level3, Level4]
             
-            # Zeichne 4 Slots nebeneinander (Slot 4, 3, 2, 1 von links nach rechts)
+            # Zeichne 4 Slots nebeneinander (Level 4→3→2→1 von links nach rechts)
             for slot_index, slot_data in enumerate(slots):
                 level = slot_data['level']
                 barcode = slot_data['barcode']
                 x_offset = slot_index * self.slot_width
                 
-                # Slot-Nummer für Display (Level→Slot: 1→4, 2→3, 3→2, 4→1)
-                slot_display_num = 5 - level
+                # Slot-Nummer für Display entspricht Level
+                slot_display_num = level
                 
                 # Farbe nach Level
                 slot_color = self.color_map.get(level, colors.white)
@@ -159,50 +159,61 @@ class PDFLabelGenerator:
                 c.setLineWidth(0.5)
                 c.rect(x_offset, 0, self.slot_width, self.label_height, fill=0, stroke=1)
                 
-                # ===== RACK-KENNUNG (oben links, gedreht) =====
+                # ===== RACK-KENNUNG (links, vertikal gedreht) =====
                 c.setFillColor(colors.black)
-                c.setFont("Helvetica-Bold", 42)  # 42pt (vorher 16pt)
+                c.setFont("Helvetica-Bold", 31)
+                # Nur für den blauen Slot (slot_index 0) weiter nach innen verschieben
+                rack_offset = 20*mm if slot_index == 0 else 18*mm
                 c.saveState()
-                c.translate(x_offset + 5*mm, self.label_height - 8*mm)
+                c.translate(x_offset + rack_offset, 20*mm)
                 c.rotate(90)
-                c.drawCentredString(0, 0, rack)
+                c.drawString(0, 0, rack)
                 c.restoreState()
                 
-                # ===== QR-CODE (oben-links positioned, mit weißem Hintergrund) =====
+                # ===== QR-CODE (oben-mitte mit weißem Hintergrund) =====
                 if barcode:
-                    # Weiße Box hinter QR-Code
-                    qr_box_padding = 1.5 * mm
+                    # Gemeinsamer Center für Box + QR
+                    qr_box_size = 42 * mm
+                    qr_size = 32 * mm
+                    slot_center_x = x_offset + self.slot_width / 2
+                    slot_center_y = self.label_height - 10*mm - qr_box_size / 2
+                    
+                    # Weiße Box - unabhängig vom QR
                     c.setFillColor(colors.white)
                     c.setStrokeColor(colors.lightgrey)
                     c.setLineWidth(0.5)
-                    qr_x_pos = x_offset + self.padding + qr_box_padding
-                    qr_y_pos = self.label_height - self.qr_size - self.padding - qr_box_padding
+                    qr_box_x = slot_center_x - qr_box_size / 2
+                    qr_box_y = slot_center_y - qr_box_size / 2
                     c.rect(
-                        qr_x_pos - qr_box_padding, 
-                        qr_y_pos - qr_box_padding, 
-                        self.qr_size + 2*qr_box_padding, 
-                        self.qr_size + 2*qr_box_padding, 
+                        qr_box_x,
+                        qr_box_y,
+                        qr_box_size,
+                        qr_box_size,
                         fill=1, stroke=1
                     )
                     
-                    # QR-Code selbst (oben-links corner positioned)
-                    qr_code = qr.QrCodeWidget(barcode)
-                    qr_drawing = Drawing(self.qr_size, self.qr_size)
+                    # QR-Code - unabhängig von Box, gleicher Center
+                    qr_code = qr.QrCodeWidget(barcode, barBorder=1)
+                    qr_drawing = Drawing(qr_size, qr_size)
                     qr_drawing.add(qr_code)
-                    qr_drawing.drawOn(c, qr_x_pos, qr_y_pos)
+                    qr_x = slot_center_x - qr_size / 2
+                    qr_y = slot_center_y - qr_size / 2
+                    qr_drawing.drawOn(c, qr_x, qr_y)
                 
-                # ===== BARCODE-NUMMER (unten, große Schrift 24pt) =====
-                c.setFont("Courier-Bold", 24)  # 24pt Mono, größer (vorher 8pt)
+                # ===== BARCODE-NUMMER (unten center) =====
                 c.setFillColor(colors.black)
-                c.drawCentredString(x_offset + self.slot_width/2, 4*mm, str(barcode))
+                c.setFont("Helvetica-Bold", 22)
+                c.drawCentredString(x_offset + self.slot_width/2, 7*mm, str(barcode))
                 
-                # ===== SLOT-NUMMER (rechts oben, sehr groß 42pt) =====
-                c.setFont("Helvetica-Bold", 42)  # 42pt (vorher 32pt)
-                c.drawRightString(x_offset + self.slot_width - 3*mm, self.label_height - 10*mm, str(slot_display_num))
+                # ===== SLOT-NUMMER/LEVEL (oben rechts, 64pt) =====
+                c.setFillColor(colors.black)
+                c.setFont("Helvetica-Bold", 64)
+                c.drawRightString(x_offset + self.slot_width - 11*mm, self.label_height - 28*mm, str(slot_display_num))
                 
-                # ===== LEVEL-NUMMER (rechts unten, 32pt) =====
-                c.setFont("Helvetica-Bold", 32)  # 32pt (vorher 14pt)
-                c.drawRightString(x_offset + self.slot_width - 3*mm, 7*mm, f"L{level}")
+                # ===== POSITION-ZIFFER (unten rechts) =====
+                c.setFillColor(colors.black)
+                c.setFont("Helvetica-Bold", 42)
+                c.drawRightString(x_offset + self.slot_width - 9*mm, 20*mm, position)
             
             c.showPage()
         
