@@ -92,7 +92,7 @@ class PDFLabelGenerator:
         for (rack, position), slots in sorted(label_data.items()):
             levels_present = {slot['level'] for slot in slots}
             if levels_present == {1, 2, 3, 4}:
-                slots_sorted = sorted(slots, key=lambda x: x['level'])
+                slots_sorted = sorted(slots, key=lambda x: x['level'], reverse=True)
                 labels.append({
                     'rack': rack,
                     'position': position,
@@ -119,7 +119,7 @@ class PDFLabelGenerator:
                 barcode = slot_data['barcode']
                 x_offset = slot_index * self.slot_width
                 
-                slot_display_num = 5 - level
+                slot_display_num = level
                 slot_color = self.color_map.get(level, colors.white)
                 
                 # ===== HINTERGRUND =====
@@ -131,22 +131,29 @@ class PDFLabelGenerator:
                 
                 # ===== RACK-KENNUNG (links, vertikal gedreht) =====
                 c.setFillColor(colors.black)
-                c.setFont("Helvetica-Bold", 32)
+                c.setFont("Helvetica-Bold", 31)
+                # Nur für den blauen Slot (slot_index 0) weiter nach innen verschieben
+                rack_offset = 20*mm if slot_index == 0 else 18*mm
                 c.saveState()
-                c.translate(x_offset + 15*mm, 20*mm)
+                c.translate(x_offset + rack_offset, 20*mm)
                 c.rotate(90)
                 c.drawString(0, 0, rack)
                 c.restoreState()
                 
                 # ===== QR-CODE (oben-mitte mit weißem Hintergrund) =====
                 if barcode:
-                    # Weiße Box
-                    qr_box_size = 40 * mm
+                    # Gemeinsamer Center für Box + QR
+                    qr_box_size = 42 * mm
+                    qr_size = 32 * mm
+                    slot_center_x = x_offset + self.slot_width / 2
+                    slot_center_y = self.label_height - 10*mm - qr_box_size / 2
+                    
+                    # Weiße Box - unabhängig vom QR
                     c.setFillColor(colors.white)
                     c.setStrokeColor(colors.lightgrey)
                     c.setLineWidth(0.5)
-                    qr_box_x = x_offset + (self.slot_width - qr_box_size) / 2
-                    qr_box_y = self.label_height - qr_box_size - 10*mm
+                    qr_box_x = slot_center_x - qr_box_size / 2
+                    qr_box_y = slot_center_y - qr_box_size / 2
                     c.rect(
                         qr_box_x,
                         qr_box_y,
@@ -155,35 +162,28 @@ class PDFLabelGenerator:
                         fill=1, stroke=1
                     )
                     
-                    # QR-Code - zentriert mit translate()
+                    # QR-Code - unabhängig von Box, gleicher Center
                     qr_code = qr.QrCodeWidget(barcode, barBorder=1)
-                    qr_size = 32 * mm
                     qr_drawing = Drawing(qr_size, qr_size)
                     qr_drawing.add(qr_code)
-                    
-                    # Zentrieren der QR in der Box
-                    qr_center_x = qr_box_x + qr_box_size / 2
-                    qr_center_y = qr_box_y + qr_box_size / 2
-                    
-                    c.saveState()
-                    c.translate(qr_center_x, qr_center_y)
-                    qr_drawing.drawOn(c, -qr_size / 2, -qr_size / 2)
-                    c.restoreState()
+                    qr_x = slot_center_x - qr_size / 2
+                    qr_y = slot_center_y - qr_size / 2
+                    qr_drawing.drawOn(c, qr_x, qr_y)
                 
-                # ===== BARCODE-NUMMER (unten center, 20pt Courier) =====
+                # ===== BARCODE-NUMMER (unten center) =====
                 c.setFillColor(colors.black)
-                c.setFont("Courier-Bold", 26)
+                c.setFont("Helvetica", 22)
                 c.drawCentredString(x_offset + self.slot_width/2, 7*mm, str(barcode))
                 
                 # ===== SLOT-NUMMER/LEVEL (oben rechts, 42pt) =====
                 c.setFillColor(colors.black)
-                c.setFont("Helvetica-Bold", 42)
-                c.drawRightString(x_offset + self.slot_width - 5*mm, self.label_height - 20*mm, str(slot_display_num))
+                c.setFont("Helvetica-Bold", 64)
+                c.drawRightString(x_offset + self.slot_width - 11*mm, self.label_height - 28*mm, str(slot_display_num))
                 
                 # ===== POSITION-ZIFFER (unten rechts) =====
                 c.setFillColor(colors.black)
-                c.setFont("Helvetica-Bold", 24)
-                c.drawRightString(x_offset + self.slot_width - 5*mm, 20*mm, position)
+                c.setFont("Helvetica-Bold", 42)
+                c.drawRightString(x_offset + self.slot_width - 9*mm, 20*mm, position)
             
             # ===== DRUCK-MARKIERUNG (Magenta Border 5mm von Rand) - NACH allen Slots =====
             c.setStrokeColor(colors.HexColor('#ff00ff'))  # Magenta
